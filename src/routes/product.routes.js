@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import pool from '../config/mysql.js';
-import redis from '../config/redis.js';
+import { getRedis } from '../config/redis.js';
+import { getPool } from '../config/mysql.js';
 
 const router = Router();
 

@@ -34,6 +34,9 @@ router.get('/', async (req, res) => {
       }
     }
 
+    // Parse limit properly
+    const limitNum = Math.min(Math.max(parseInt(limit) || 20, 1), 100); // Between 1-100
+
     // Build database query
     const queryParams = [];
     let query = `
@@ -59,7 +62,7 @@ router.get('/', async (req, res) => {
     }
 
     query += ' LIMIT ?';
-    queryParams.push(parseInt(limit));
+    queryParams.push(limitNum); // ← Use limitNum (guaranteed number)
 
     // Execute query
     const [rows] = await pool.execute(query, queryParams);
@@ -83,10 +86,11 @@ router.get('/', async (req, res) => {
       data: rows,
       cursor: null,
       total: totalCount,
+      count: rows.length,
       filters: {
         category: category || 'all',
         search: search || '',
-        limit: parseInt(limit)
+        limit: limitNum
       },
       message: '✅ Data from database'
     };
@@ -111,5 +115,6 @@ router.get('/', async (req, res) => {
     });
   }
 });
+
 
 export default router;

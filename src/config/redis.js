@@ -7,15 +7,15 @@ let redisClient = null;
 let connecting = false;
 
 export async function getRedis() {
-  // Skip Redis entirely in production if no host configured
+
   if (process.env.NODE_ENV === 'production' && !process.env.REDIS_HOST) {
     return null;
   }
 
-  // Already connected
+
   if (redisClient && redisClient.isOpen) return redisClient;
 
-  // Prevent concurrent connection attempts
+
   if (connecting) {
     while (!redisClient?.isOpen && connecting) {
       await new Promise(r => setTimeout(r, 100));
@@ -34,14 +34,13 @@ export async function getRedis() {
       }
     });
 
-    // SILENCE ALL Redis errors in production
     redisClient.on('error', (err) => {
       if (process.env.NODE_ENV !== 'production') {
         console.warn('⚠️  Redis error:', err.message);
       }
     });
 
-    // Only connect if host exists
+
     if (process.env.REDIS_HOST) {
       await redisClient.connect();
       console.log('✅ Redis connected');

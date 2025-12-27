@@ -7,16 +7,16 @@ let pool = null;
 let connecting = false;
 
 export async function getPool() {
-  // If no DB config, return null (demo mode)
+
   if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
     console.warn('⚠️  No database configured - running in demo mode');
     return null;
   }
 
-  // Already connected
+
   if (pool) return pool;
 
-  // Prevent concurrent connection attempts
+
   if (connecting) {
     while (!pool && connecting) {
       await new Promise(r => setTimeout(r, 100));

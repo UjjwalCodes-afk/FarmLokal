@@ -10,6 +10,7 @@ import externalRoutes from './routes/external.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import rateLimiter from './middleware/rateLimiter.js';
 import errorMiddleware from './middleware/error.middleware.js';
+import seedRoutes from './routes/seed.routes.js';
 
 dotenv.config();
 
@@ -22,7 +23,7 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(rateLimiter);
-
+app.use('/api/seed', seedRoutes);
 // Health check
 app.get('/health', (req, res) => {
   res.json({

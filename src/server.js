@@ -5,7 +5,7 @@ import app from './app.js';
 
 const PORT = process.env.PORT || 3000;
 
-// Start server immediately - don't wait for DB
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n✅ Server running on port ${PORT}`);
   console.log(`📍 http://localhost:${PORT}`);

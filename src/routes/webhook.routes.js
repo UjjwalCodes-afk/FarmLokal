@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
-// Handle webhook events with idempotency
+
 router.post('/event', async (req, res, next) => {
   try {
     const { eventId, eventType, payload } = req.body;
@@ -14,7 +14,6 @@ router.post('/event', async (req, res, next) => {
       return res.status(400).json({ error: 'eventId is required' });
     }
 
-    // Check if already processed (idempotency)
     const key = `webhook:event:${eventId}`;
     const alreadyProcessed = await redis.get(key);
     
@@ -23,10 +22,10 @@ router.post('/event', async (req, res, next) => {
       return res.json({ status: 'already_processed' });
     }
 
-    // Mark as processing
+
     await redis.set(key, 'processed', { EX: 86400 });
 
-    // Store in database
+
     await pool.query(
       `INSERT INTO webhook_events (id, event_type, payload) VALUES (?, ?, ?)`,
       [eventId, eventType || 'unknown', JSON.stringify(payload || {})]

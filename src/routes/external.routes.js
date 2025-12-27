@@ -4,7 +4,7 @@ import { getAccessToken, retry } from '../services/oauth.service.js';
 
 const router = Router();
 
-// API A - Synchronous with retry
+
 router.get('/data', async (req, res, next) => {
   try {
     const token = await getAccessToken();

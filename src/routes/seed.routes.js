@@ -7,7 +7,7 @@ router.post('/', async (req, res) => {
   try {
     const { secret, records = 100000 } = req.body;
 
-    // Simple security - set this in Render env
+
     if (secret !== process.env.SEED_SECRET) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -18,7 +18,7 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: 'Database not connected' });
     }
 
-    // Create table
+
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS products (
         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -32,7 +32,7 @@ router.post('/', async (req, res) => {
       )
     `);
 
-    // Clear existing
+
     await pool.execute('TRUNCATE TABLE products');
 
     const categories = ['vegetables', 'fruits', 'grains', 'dairy'];

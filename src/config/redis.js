@@ -30,7 +30,7 @@ export async function getRedis() {
       socket: {
         host: process.env.REDIS_HOST || 'redis',
         port: process.env.REDIS_PORT || 6379,
-        reconnectStrategy: false  // ← CRITICAL: Disable auto-reconnect
+        reconnectStrategy: false  
       }
     });
 

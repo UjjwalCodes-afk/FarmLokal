@@ -8,11 +8,11 @@ router.get('/', async (req, res) => {
   try {
     const { limit, cursor, category, search, sortBy } = req.query;
     
-    // Get redis and pool (both might be null)
+  
     const redis = await getRedis();
     const pool = await getPool();
 
-    // Check if database is available
+
     if (!pool) {
       return res.status(503).json({
         error: 'Database unavailable',
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // Parse limit - ensure it's a number
+
     let limitNum = 20;
     if (limit) {
       const parsed = Number(limit);
@@ -29,10 +29,10 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Parse cursor (last ID from previous page)
+
     const cursorId = cursor ? parseInt(cursor) : 0;
 
-    // Try cache first if Redis available
+
     if (redis) {
       const cacheKey = `products:${category || 'all'}:${search || ''}:${cursorId}:${limitNum}`;
       try {
@@ -42,15 +42,15 @@ router.get('/', async (req, res) => {
           return res.json(JSON.parse(cached));
         }
       } catch (cacheErr) {
-        // Ignore cache errors
+        
       }
     }
 
-    // Build database query
+
     const queryParams = [];
     let query = 'SELECT id, name, price, category, stock, description FROM products WHERE 1=1';
 
-    // Add cursor condition for pagination
+
     if (cursorId > 0) {
       query += ' AND id > ?';
       queryParams.push(cursorId);
@@ -65,29 +65,29 @@ router.get('/', async (req, res) => {
       queryParams.push(`%${search}%`);
     }
 
-    // Sort by ID for cursor pagination (required)
+   
     query += ' ORDER BY id ASC';
 
-    // Add limit - fetch one extra to check if there's a next page
+
     query += ` LIMIT ${limitNum + 1}`;
 
     console.log('Executing query:', query, 'Params:', queryParams);
 
-    // Execute query
+ 
     const [rows] = queryParams.length > 0 
       ? await pool.execute(query, queryParams)
       : await pool.query(query);
     
-    // Check if there's a next page
+
     const hasMore = rows.length > limitNum;
     const products = hasMore ? rows.slice(0, limitNum) : rows;
     
-    // Get next cursor (last product ID)
+
     const nextCursor = hasMore && products.length > 0 
       ? products[products.length - 1].id 
       : null;
 
-    // Get total count
+
     let countQuery = 'SELECT COUNT(*) as total FROM products WHERE 1=1';
     const countParams = [];
     
@@ -120,13 +120,13 @@ router.get('/', async (req, res) => {
       message: '✅ Data from database'
     };
 
-    // Cache results if Redis available (5 min TTL)
+
     if (redis) {
       try {
         const cacheKey = `products:${category || 'all'}:${search || ''}:${cursorId}:${limitNum}`;
         await redis.setEx(cacheKey, 300, JSON.stringify(response));
       } catch (cacheErr) {
-        // Ignore cache write errors
+          throw(cacheErr);
       }
     }
 

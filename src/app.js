@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use(rateLimiter);
 app.use('/api/seed', seedRoutes);
-// Health check
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -33,17 +33,17 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Routes
+
 app.use('/api/products', productRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/webhooks', webhookRoutes);
 
-// 404 handler
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Error handler
+
 app.use(errorMiddleware);
 
 export default app;

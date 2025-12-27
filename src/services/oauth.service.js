@@ -16,7 +16,6 @@ export async function getAccessToken() {
 
     console.log('❌ OAuth: Cache MISS - fetching from provider');
 
-    // Set lock to prevent concurrent fetches
     const lockSet = await redis.set(LOCK_KEY, '1', {
       NX: true,
       EX: 5
@@ -46,13 +45,13 @@ export async function getAccessToken() {
 
       console.log(`🎯 OAuth: Token fetched, expires in ${expiresIn}s`);
 
-      // Store in Redis with TTL
+    
       const ttl = Math.max(expiresIn - 30, 60);
       await redis.set(TOKEN_KEY, token, { EX: ttl });
       
       console.log(`💾 OAuth: Token stored in Redis (TTL: ${ttl}s)`);
 
-      // Release lock
+
       await redis.del(LOCK_KEY);
       console.log('🔓 OAuth: Lock released');
 

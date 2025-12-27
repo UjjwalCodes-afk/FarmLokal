@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const { limit = 20, cursor = null, category, search, sortBy = 'name' } = req.query;
+    const { limit, cursor, category, search, sortBy } = req.query;
     
     // Get redis and pool (both might be null)
     const redis = await getRedis();
@@ -20,9 +20,18 @@ router.get('/', async (req, res) => {
       });
     }
 
+    // Parse limit - ensure it's a number
+    let limitNum = 20;
+    if (limit) {
+      const parsed = Number(limit);
+      if (!isNaN(parsed) && parsed > 0 && parsed <= 100) {
+        limitNum = Math.floor(parsed);
+      }
+    }
+
     // Try cache first if Redis available
     if (redis) {
-      const cacheKey = `products:${category || 'all'}:${search || ''}:${cursor || '0'}:${limit}`;
+      const cacheKey = `products:${category || 'all'}:${search || ''}:${cursor || '0'}:${limitNum}`;
       try {
         const cached = await redis.get(cacheKey);
         if (cached) {
@@ -34,16 +43,9 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Parse limit properly
-    const limitNum = Math.min(Math.max(parseInt(limit) || 20, 1), 100); // Between 1-100
-
     // Build database query
     const queryParams = [];
-    let query = `
-      SELECT id, name, price, category, stock, description 
-      FROM products 
-      WHERE 1=1
-    `;
+    let query = 'SELECT id, name, price, category, stock, description FROM products WHERE 1=1';
 
     if (category) {
       query += ' AND category = ?';
@@ -54,22 +56,29 @@ router.get('/', async (req, res) => {
       queryParams.push(`%${search}%`);
     }
 
-    if (sortBy) {
-      const validSorts = ['name', 'price', 'category', 'stock', 'id'];
-      if (validSorts.includes(sortBy)) {
-        query += ` ORDER BY ${sortBy}`;
-      }
+    // Sort
+    const sortField = sortBy || 'name';
+    const validSorts = ['name', 'price', 'category', 'stock', 'id'];
+    if (validSorts.includes(sortField)) {
+      query += ` ORDER BY ${sortField}`;
+    } else {
+      query += ' ORDER BY name';
     }
 
-    query += ' LIMIT ?';
-    queryParams.push(limitNum); // ← Use limitNum (guaranteed number)
+    // Add limit - use string interpolation instead of parameter
+    query += ` LIMIT ${limitNum}`;
 
-    // Execute query
-    const [rows] = await pool.execute(query, queryParams);
+    console.log('Executing query:', query, 'Params:', queryParams);
+
+    // Execute query without limit parameter
+    const [rows] = queryParams.length > 0 
+      ? await pool.execute(query, queryParams)
+      : await pool.query(query);
     
     // Get total count
     let countQuery = 'SELECT COUNT(*) as total FROM products WHERE 1=1';
     const countParams = [];
+    
     if (category) {
       countQuery += ' AND category = ?';
       countParams.push(category);
@@ -79,7 +88,10 @@ router.get('/', async (req, res) => {
       countParams.push(`%${search}%`);
     }
     
-    const [countResult] = await pool.execute(countQuery, countParams);
+    const [countResult] = countParams.length > 0
+      ? await pool.execute(countQuery, countParams)
+      : await pool.query(countQuery);
+    
     const totalCount = countResult[0].total;
 
     const response = {
@@ -98,7 +110,7 @@ router.get('/', async (req, res) => {
     // Cache results if Redis available (5 min TTL)
     if (redis) {
       try {
-        const cacheKey = `products:${category || 'all'}:${search || ''}:${cursor || '0'}:${limit}`;
+        const cacheKey = `products:${category || 'all'}:${search || ''}:${cursor || '0'}:${limitNum}`;
         await redis.setEx(cacheKey, 300, JSON.stringify(response));
       } catch (cacheErr) {
         // Ignore cache write errors
@@ -115,6 +127,5 @@ router.get('/', async (req, res) => {
     });
   }
 });
-
 
 export default router;

@@ -28,17 +28,21 @@ export async function getPool() {
 
   try {
     pool = mysql.createPool({
-      host: process.env.DB_HOST || 'mysql',
+      host: process.env.DB_HOST,
       port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'farmlokal_user',
-      password: process.env.DB_PASSWORD || 'farmlokal_pass',
-      database: process.env.DB_NAME || 'farmlokal',
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      ssl: {
+        rejectUnauthorized: true
+      },
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
       enableKeepAlive: true,
-      keepAliveInitialDelayMs: 0
+      keepAliveInitialDelay: 0
     });
+    
 
     const conn = await pool.getConnection();
     console.log('✅ MySQL connected');

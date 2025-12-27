@@ -1,0 +1,68 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: farmlokal-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: farmlokal
+      MYSQL_USER: farmlokal_user
+      MYSQL_PASSWORD: farmlokal_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    networks:
+      - farmlokal-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: farmlokal-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - farmlokal-network
+
+  api:
+    build: .
+    container_name: farmlokal-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: farmlokal_user
+      DB_PASSWORD: farmlokal_pass
+      DB_NAME: farmlokal
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - farmlokal-network
+    command: npm run dev
+
+volumes:
+  mysql_data:
+
+networks:
+  farmlokal-network:
+    driver: bridge

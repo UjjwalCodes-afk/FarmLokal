@@ -7,9 +7,8 @@ let redisClient = null;
 let connecting = false;
 
 export async function getRedis() {
-  // If no Redis config, return null (demo mode)
-  if (!process.env.REDIS_HOST && process.env.NODE_ENV === 'production') {
-    console.warn('⚠️  No Redis configured - running in demo mode');
+  // Skip Redis entirely in production if no host configured
+  if (process.env.NODE_ENV === 'production' && !process.env.REDIS_HOST) {
     return null;
   }
 
@@ -31,21 +30,29 @@ export async function getRedis() {
       socket: {
         host: process.env.REDIS_HOST || 'redis',
         port: process.env.REDIS_PORT || 6379,
-        reconnectStrategy: (retries) => Math.min(retries * 50, 500)
+        reconnectStrategy: false  // ← CRITICAL: Disable auto-reconnect
       }
     });
 
+    // SILENCE ALL Redis errors in production
     redisClient.on('error', (err) => {
-      console.warn('⚠️  Redis error:', err.message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('⚠️  Redis error:', err.message);
+      }
     });
 
-    await redisClient.connect();
-    console.log('✅ Redis connected');
+    // Only connect if host exists
+    if (process.env.REDIS_HOST) {
+      await redisClient.connect();
+      console.log('✅ Redis connected');
+    }
+    
     connecting = false;
     return redisClient;
   } catch (err) {
     console.warn('⚠️  Redis unavailable:', err.message);
     connecting = false;
+    redisClient = null;
     return null;
   }
 }

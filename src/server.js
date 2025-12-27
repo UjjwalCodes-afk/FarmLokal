@@ -5,10 +5,9 @@ import app from './app.js';
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 FarmLokal API running on http://localhost:${PORT}`);
-  console.log(`📊 Health: http://localhost:${PORT}/health`);
-  console.log(`📦 Products: http://localhost:${PORT}/api/products`);
-  console.log(`🔗 External API: http://localhost:${PORT}/api/external`);
-  console.log(`🪝 Webhooks: http://localhost:${PORT}/api/webhooks\n`);
+// Start server immediately - don't wait for DB
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n✅ Server running on port ${PORT}`);
+  console.log(`📍 http://localhost:${PORT}`);
+  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
 });

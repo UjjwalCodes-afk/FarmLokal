@@ -3,11 +3,29 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-let pool;
-let retries = 0;
-const MAX_RETRIES = 30;
+let pool = null;
+let connecting = false;
 
-async function createPool() {
+export async function getPool() {
+  // If no DB config, return null (demo mode)
+  if (!process.env.DB_HOST && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️  No database configured - running in demo mode');
+    return null;
+  }
+
+  // Already connected
+  if (pool) return pool;
+
+  // Prevent concurrent connection attempts
+  if (connecting) {
+    while (!pool && connecting) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return pool;
+  }
+
+  connecting = true;
+
   try {
     pool = mysql.createPool({
       host: process.env.DB_HOST || 'mysql',
@@ -19,26 +37,19 @@ async function createPool() {
       connectionLimit: 10,
       queueLimit: 0,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 0
+      keepAliveInitialDelayMs: 0
     });
 
     const conn = await pool.getConnection();
-    console.log('✓ MySQL connected');
+    console.log('✅ MySQL connected');
     conn.release();
+    connecting = false;
     return pool;
   } catch (err) {
-    retries++;
-    if (retries < MAX_RETRIES) {
-      console.log(`⏳ MySQL connection failed (attempt ${retries}/${MAX_RETRIES}), retrying in 2s...`);
-      await new Promise(r => setTimeout(r, 2000));
-      return createPool();
-    } else {
-      console.error('✗ MySQL connection failed after max retries');
-      throw err;
-    }
+    console.warn('⚠️  MySQL unavailable:', err.message);
+    connecting = false;
+    return null;
   }
 }
 
-pool = await createPool();
-
-export default pool;
+export default { getPool };
